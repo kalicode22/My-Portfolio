@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Bhavish Kumar | Portfolio</title>
+    
+    <!-- Three.js for 3D Character -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Advanced Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --bg-color: #050505;
+            --card-bg: rgba(20, 20, 25, 0.6);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent-primary: #00f2ff; /* Cyan */
+            --accent-secondary: #00ff9d; /* Neon Green */
+            --glitch-color-1: #ff00ff;
+            --glitch-color-2: #00ffff;
+            --font-heading: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        html { scroll-behavior: smooth; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-heading);
+            overflow-x: hidden;
+            line-height: 1.6;
+            cursor: none; /* Hide default cursor for custom one */
+        }
+
+        /* --- GUEST MODE RESTRICTIONS (Prompt Implementation) --- */
+        body.guest-mode .card-controls,
+        body.guest-mode .upload-card {
+            display: none !important;
+            pointer-events: none !important;
+        }
+
+        /* Ensure default cursor doesn't reappear on interactive elements */
+        a, button, input, textarea, .project-card, .section, .certificate-card, .upload-card, .control-btn, .ai-send-btn, .voice-indicator {
+            cursor: none !important;
+        }
+
+        /* Lock scroll when loading or on main header */
+        body.no-scroll {
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* --- SCROLL PROGRESS BAR --- */
+        #scroll-progress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            width: 0%;
+            z-index: 10002;
+            box-shadow: 0 0 10px var(--accent-primary);
+            transition: width 0.1s;
+        }
+
+        /* --- CRT SCANLINES --- */
+        #scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.1) 50%,
+                rgba(0,0,0,0.1)
+            );
+            background-size: 100% 4px;
+            z-index: 9998;
+            pointer-events: none;
+            animation: scanline 0.2s linear infinite;
+            opacity: 0.3;
+        }
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        /* --- CUSTOM CURSOR --- */
+        #custom-cursor {
+            position: fixed;
+            top: 0; left: 0;
+            width: 20px; height: 20px;
+            border: 1px solid var(--accent-secondary);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20000; /* Increased z-index to be above AI Terminal (10010) */
+            transform: translate(-50%, -50%);
+            /* Added opacity to transition for smooth hide/show */
+            transition: width 0.2s, height 0.2s, background-color 0.2s, border-color 0.2s, opacity 0.2s;
+            mix-blend-mode: exclusion;
+        }
+
+        /* Cursor dot in center */
+        #custom-cursor::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px; height: 4px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+        }
+
+        /* Hover State for Cursor */
+        #custom-cursor.active {
+            width: 50px; height: 50px;
+            background-color: rgba(0, 242, 255, 0.1);
+            border-color: var(--accent-primary);
+            border-width: 2px;
+        }
+
+        /* Selection Color */
+        ::selection {
+            background: var(--accent-secondary);
+            color: #000;
+        }
+
+        /* --- DYNAMIC BACKGROUND CANVAS --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2; opacity: 0.6; pointer-events: none;
+        }
+
+        /* --- MECHANICAL EYES (Positioned under button) --- */
+        .mech-eyes-container {
+            position: relative; /* Flows with content */
+            margin-top: 5rem;   /* Increased gap from 3rem to 5rem */
+            display: flex;
+            gap: 40px;
+            z-index: 1; 
+            pointer-events: none;
+            opacity: 0.9;       /* Increased visibility */
+            transition: opacity 0.5s ease;
+        }
+
+        /* Eye Set Wrapper to hold Eye + Eyebrow */
+        .eye-set-wrapper {
+            position: relative;
+            width: 140px;
+            height: 140px;
+        }
+
+        .mech-eye {
+            width: 100%;
+            height: 100%;
+            border: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            background: rgba(10, 10, 15, 0.8);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2), inset 0 0 30px rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        /* --- EYEBROWS (Positions Above Eyes) --- */
+        .mech-eyebrow {
+            position: absolute;
+            top: -25px; /* Sit above the eye */
+            left: 5%;
+            width: 90%;
+            height: 12px;
+            background: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-primary);
+            z-index: 6; 
+            /* Smoother animation: increased duration to 0.6s */
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            border-radius: 2px;
+            clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%);
+        }
+
+        /* Default Angles */
+        #wrap-left .mech-eyebrow, #v-wrap-left .mech-eyebrow, #ai-wrap-left .mech-eyebrow {
+            transform: rotate(5deg);
+        }
+        #wrap-right .mech-eyebrow, #v-wrap-right .mech-eyebrow, #ai-wrap-right .mech-eyebrow {
+            transform: rotate(-5deg);
+        }
+
+        /* --- EXPRESSIONS (Applied to Wrapper) --- */
+
+        /* 1. Angry (Delete/Danger) */
+        .eye-set-wrapper.angry .mech-eye {
+            border-color: #ff0055;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.6), inset 0 0 30px rgba(0,0,0,0.8);
+        }
+        .eye-set-wrapper.angry .mech-pupil {
+            background: radial-gradient(circle, #ff0055 30%, transparent 70%);
+            border-color: #ff0055;
+            box-shadow: 0 0 25px #ff0055;
+        }
+        .eye-set-wrapper.angry .mech-eyebrow {
+            background: #ff0055;
+            box-shadow: 0 0 10px #ff0055;
+            top: -10px; /* Move down closer to eye */
+        }
+        /* Rotate inner corners down for angry look */
+        #wrap-left.angry .mech-eyebrow, #v-wrap-left.angry .mech-eyebrow, #ai-wrap-left.angry .mech-eyebrow {
+            transform: rotate(25deg);
+        }
+        #wrap-right.angry .mech-eyebrow, #v-wrap-right.angry .mech-eyebrow, #ai-wrap-right.angry .mech-eyebrow {
+            transform: rotate(-25deg);
+        }
+
+        /* 2. Happy / Surprised (Upload/Success) */
+        .eye-set-wrapper.happy .mech-eyebrow {
+            top: -40px; /* Raise high */
+            background: var(--accent-secondary);
+            box-shadow: 0 0 15px var(--accent-secondary);
+        }
+        .eye-set-wrapper.happy .mech-eye {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 40px rgba(0, 255, 157, 0.5), inset 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        /* 3. Suspicious (Verification/Squint) */
+        .eye-set-wrapper.suspicious .mech-eyelid-top { height: 35%; }
+        .eye-set-wrapper.suspicious .mech-eyelid-bottom { height: 35%; }
+        .eye-set-wrapper.suspicious .mech-eyebrow {
+            top: -15px; /* Lower slightly */
+            transform: rotate(0deg) !important;
+        }
+        
+        /* 4. Blink Reaction (Added for expressiveness) */
+        .eye-set-wrapper.blink-action .mech-eyebrow {
+            transform: translateY(5px); /* Dip slightly on blink */
+        }
+
+        /* Visual Cues for States */
+        .eye-set-wrapper.listening .mech-eye {
+            border-color: #ff0055;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.6), inset 0 0 30px rgba(0,0,0,0.8);
+        }
+        .eye-set-wrapper.listening .mech-pupil {
+            background: radial-gradient(circle, #ff0055 30%, transparent 70%);
+            border-color: #ff0055;
+            box-shadow: 0 0 25px #ff0055;
+        }
+
+        /* Thinking State (Processing) */
+        .eye-set-wrapper.processing .mech-eye {
+            border-color: #FFA500; /* Orange */
+            box-shadow: 0 0 30px rgba(255, 165, 0, 0.6), inset 0 0 30px rgba(0,0,0,0.8);
+        }
+        .eye-set-wrapper.processing .mech-pupil {
+            background: radial-gradient(circle, #FFA500 30%, transparent 70%);
+            border-color: #FFA500;
+            box-shadow: 0 0 25px #FFA500;
+            animation: pulse-eye 0.2s infinite alternate; /* Fast pulse for thinking */
+        }
+
+        .eye-set-wrapper.authorized .mech-eye {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 40px rgba(0, 255, 157, 0.8), inset 0 0 30px rgba(0,0,0,0.8);
+        }
+        .eye-set-wrapper.authorized .mech-pupil {
+            background: radial-gradient(circle, var(--accent-secondary) 30%, transparent 70%);
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 25px var(--accent-secondary);
+        }
+
+        /* Eye Grid Texture */
+        .mech-eye::before {
+            content: '';
+            position: absolute;
+            width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 242, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.1) 1px, transparent 1px);
+            background-size: 15px 15px;
+            border-radius: 50%;
+            opacity: 0.5;
+        }
+
+        /* Eye Pupil */
+        .mech-pupil {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, var(--accent-secondary) 30%, transparent 70%);
+            border: 2px solid var(--accent-secondary);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 15px var(--accent-secondary);
+            /* Movement handled by JS */
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        /* Inner Ring in Pupil */
+        .mech-pupil::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40%; height: 40%;
+            background: #fff;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        /* Eyelids */
+        .mech-eyelid-top, .mech-eyelid-bottom {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            background: #050505;
+            transition: height 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 5;
+            border-color: var(--accent-primary);
+        }
+
+        .mech-eyelid-top { 
+            top: 0; 
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        
+        .mech-eyelid-bottom { 
+            bottom: 0; 
+            border-top: 2px solid var(--accent-primary);
+        }
+
+        /* Blinking State */
+        .mech-eye.blink .mech-eyelid-top,
+        .mech-eye.blink .mech-eyelid-bottom {
+            height: 50%;
+        }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            /* Adjust eye container for mobile */
+            .mech-eyes-container {
+                gap: 20px;
+                margin-top: 4rem;
+            }
+            .eye-set-wrapper {
+                width: 100px;
+                height: 100px;
+            }
+            .mech-pupil {
+                width: 35px;
+                height: 35px;
+            }
+            
+            /* Disable Custom Cursor on Mobile */
+            #custom-cursor {
+                display: none !important;
+            }
+            
+            /* Restore Default Cursor behavior */
+            body, a, button, input, textarea, .project-card, .section, .certificate-card, .upload-card, .control-btn, .ai-send-btn, .voice-indicator {
+                cursor: auto !important;
+            }
+        }
+
+        /* --- START SCREEN --- */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            z-index: 10000; /* Highest */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+
+        /* --- VOICE VERIFICATION SCREEN (Prompt Implementation) --- */
+        #verification-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            z-index: 10001;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease;
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        #verification-screen.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .voice-indicator {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-primary);
+            display: flex; justify-content: center; align-items: center;
+            margin-bottom: 2rem;
+            position: relative;
+            cursor: pointer; /* Clickable */
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .voice-indicator:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px var(--accent-primary);
+        }
+
+        .voice-indicator::before {
+            content: '';
+            position: absolute;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--accent-primary);
+            animation: pulse-ring 1.5s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        #v-status {
+            font-family: var(--font-mono);
+            color: var(--accent-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-align: center; /* Center align status text */
+            max-width: 90%;
+        }
+        
+        /* New Verification Input */
+        #verification-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--accent-primary);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            text-align: center;
+            width: 250px;
+            padding: 10px;
+            margin-top: 20px;
+            text-transform: uppercase;
+            transition: border-color 0.3s;
+        }
+        
+        #verification-input:focus {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 5px 15px -10px var(--accent-secondary);
+        }
+        
+        #start-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- LOADING SCREEN --- */
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #loader.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loader-content {
+            width: 300px;
+            font-family: var(--font-mono);
+            text-align: center;
+        }
+
+        .loader-text {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-primary);
+            transition: width 0.1s linear;
+        }
+
+        .loader-log {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            height: 1.2em;
+        }
+
+        /* --- TYPOGRAPHY & GLITCH EFFECT --- */
+        h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary); }
+
+        .glitch-wrapper { display: inline-block; position: relative; }
+        
+        .glitch {
+            position: relative;
+            font-size: clamp(3.5rem, 9vw, 7rem);
+            line-height: 1;
+            color: var(--text-primary);
+            z-index: 1;
+        }
+
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+        }
+
+        .glitch::before {
+            left: 2px;
+            text-shadow: -2px 0 var(--glitch-color-1);
+            clip-path: inset(0 0 0 0);
+            animation: glitch-anim-1 4s infinite linear alternate-reverse;
+            z-index: -1;
+        }
+
+        .glitch::after {
+            left: -2px;
+            text-shadow: -2px 0 var(--glitch-color-2);
+            clip-path: inset(0 0 0 0);
+            animation: glitch-anim-2 4s infinite linear alternate-reverse;
+            z-index: -2;
+        }
+
+        @keyframes glitch-anim-1 {
+            0% { clip-path: inset(20% 0 80% 0); }
+            20% { clip-path: inset(60% 0 10% 0); }
+            40% { clip-path: inset(40% 0 50% 0); }
+            60% { clip-path: inset(80% 0 5% 0); }
+            80% { clip-path: inset(10% 0 70% 0); }
+            100% { clip-path: inset(30% 0 20% 0); }
+        }
+
+        @keyframes glitch-anim-2 {
+            0% { clip-path: inset(10% 0 60% 0); }
+            20% { clip-path: inset(30% 0 10% 0); }
+            40% { clip-path: inset(80% 0 5% 0); }
+            60% { clip-path: inset(40% 0 30% 0); }
+            80% { clip-path: inset(70% 0 10% 0); }
+            100% { clip-path: inset(20% 0 50% 0); }
+        }
+
+        /* --- LAYOUT & HERO --- */
+        .wrapper { 
+            max-width: 1100px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; 
+            opacity: 0; transition: opacity 0.5s;
+        }
+        
+        .wrapper.visible { opacity: 1; }
+
+        .view-hidden { display: none !important; }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            padding: 4rem 0;
+            overflow: hidden;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero p.role {
+            font-family: var(--font-mono);
+            font-size: clamp(0.9rem, 2vw, 1.2rem);
+            color: var(--accent-secondary);
+            margin-top: 2rem;
+            margin-bottom: 3.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+            opacity: 0;
+            animation: fadeIn 1.2s ease forwards 0.8s;
+        }
+
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(20px); } }
+        @keyframes fadeIn { to { opacity: 1; } from { opacity: 0; } }
+
+        /* --- HERO DECORATIONS (ABSTRACT TECH) --- */
+        .hero-decorations {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .decoration {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0; /* Start hidden */
+            transition: opacity 1.5s ease, transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .hero.active .decoration {
+            opacity: 0.5; /* Visible state */
+        }
+
+        /* Left Side: Rotating Data Ring */
+        .decoration.left {
+            left: 5%;
+            width: 300px;
+            height: 300px;
+            transform: translateY(-50%) translateX(-100px); /* Start off-left */
+        }
+        
+        .hero.active .decoration.left {
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .hud-circle {
+            width: 100%; height: 100%;
+            border: 2px dashed rgba(0, 242, 255, 0.3);
+            border-radius: 50%;
+            animation: rotate 20s linear infinite;
+            position: relative;
+        }
+
+        .hud-circle::before {
+            content: '';
+            position: absolute;
+            top: -10px; left: 50%;
+            width: 20px; height: 20px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--accent-primary);
+        }
+
+        .hud-circle-inner {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%; height: 60%;
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 50%;
+            animation: rotate-reverse 15s linear infinite;
+        }
+
+        /* Right Side: Data Stream Bars */
+        .decoration.right {
+            right: 5%;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transform: translateY(-50%) translateX(100px); /* Start off-right */
+        }
+
+        .hero.active .decoration.right {
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .data-bar {
+            width: 6px;
+            background: linear-gradient(to top, transparent, var(--accent-secondary), transparent);
+            border-radius: 4px;
+            animation: pulse-height 2s ease-in-out infinite;
+            opacity: 0.7;
+        }
+
+        .data-bar:nth-child(1) { height: 40%; animation-delay: 0s; }
+        .data-bar:nth-child(2) { height: 70%; animation-delay: 0.3s; }
+        .data-bar:nth-child(3) { height: 100%; animation-delay: 0.6s; width: 8px; background: linear-gradient(to top, transparent, var(--accent-primary), transparent); }
+        .data-bar:nth-child(4) { height: 60%; animation-delay: 0.2s; }
+        .data-bar:nth-child(5) { height: 30%; animation-delay: 0.5s; }
+
+        @keyframes rotate { 100% { transform: rotate(360deg); } }
+        @keyframes rotate-reverse { 100% { transform: translate(-50%, -50%) rotate(-360deg); } }
+        @keyframes pulse-height { 
+            0%, 100% { transform: scaleY(0.8); opacity: 0.3; }
+            50% { transform: scaleY(1.2); opacity: 1; box-shadow: 0 0 10px var(--accent-secondary); }
+        }
+
+        @media (max-width: 768px) {
+            .decoration { display: none; } /* Hide decoration on small screens for cleaner UI */
+        }
+
+        /* --- CUTE PROGRAMMER BOY (CSS CHARACTER) --- */
+        .programmer-boy {
+            position: absolute;
+            top: 0;
+            right: 40px; /* Default (changed dynamically) */
+            width: 60px;
+            height: 90px;
+            z-index: -1;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            
+            /* No longer clickable for speech */
+            pointer-events: none; 
+            
+            --boy-rotate: 0deg;
+        }
+
+        /* Hover Reveal */
+        .section:hover .programmer-boy {
+            opacity: 1;
+            transform: translateY(-85px) scale(1) rotate(var(--boy-rotate));
+        }
+
+        /* --- BODY PARTS --- */
+        /* Head & Hood */
+        .boy-head {
+            position: absolute; top: 0; left: 10px; width: 40px; height: 40px; z-index: 2;
+            animation: head-bob 3s infinite ease-in-out;
+        }
+        .boy-hood {
+            position: absolute; width: 100%; height: 100%;
+            background: var(--accent-primary); /* Cyan Hoodie */
+            border-radius: 50%;
+            box-shadow: inset -2px -2px 5px rgba(0,0,0,0.3);
+        }
+        .boy-face {
+            position: absolute; top: 6px; left: 6px; width: 28px; height: 28px;
+            background: #ffdbac; /* Skin */
+            border-radius: 50%;
+        }
+        .boy-eyes {
+            position: absolute; top: 10px; left: 5px; display: flex; gap: 8px;
+            justify-content: center; width: 100%;
+        }
+        .boy-eyes span {
+            width: 4px; height: 4px; background: #111; border-radius: 50%;
+            animation: blink 4s infinite;
+        }
+
+        /* Body */
+        .boy-body {
+            position: absolute; top: 35px; left: 12px; width: 36px; height: 30px;
+            background: var(--accent-primary);
+            border-radius: 10px 10px 5px 5px; z-index: 1; display: flex; justify-content: center;
+        }
+        .boy-body::after {
+            content: ''; position: absolute; bottom: 5px; width: 20px; height: 10px;
+            background: rgba(0,0,0,0.15); border-radius: 0 0 10px 10px;
+        }
+
+        /* Arms */
+        .boy-arm {
+            position: absolute; top: 5px; width: 10px; height: 25px;
+            background: var(--accent-primary); border-radius: 5px; transform-origin: top center;
+        }
+        .boy-arm.left { left: -6px; transform: rotate(10deg); }
+        .boy-arm.right { right: -6px; transform: rotate(-10deg); }
+
+        /* Legs */
+        .boy-legs {
+            position: absolute; top: 60px; left: 16px; display: flex; gap: 6px;
+        }
+        .boy-leg {
+            width: 10px; height: 22px; background: #222; border-radius: 0 0 5px 5px;
+        }
+
+        /* --- ANIMATIONS (EMOTES) --- */
+        @keyframes head-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2px); } }
+        @keyframes blink { 0%, 90%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+
+        /* Emote: Wave */
+        .programmer-boy.wave .boy-arm.right { animation: wave-arm 1s infinite ease-in-out; }
+        @keyframes wave-arm { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(-150deg); } }
+
+        /* Emote: Dance */
+        .programmer-boy.dance .boy-body { animation: dance-body 0.5s infinite alternate; }
+        .programmer-boy.dance .boy-head { animation: dance-head 0.5s infinite alternate; }
+        @keyframes dance-body { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+        @keyframes dance-head { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+
+        /* Emote: Jump */
+        .programmer-boy.jump { animation: jump-whole 0.6s infinite ease-in-out alternate; }
+        @keyframes jump-whole { from { transform: translateY(-85px) scale(1); } to { transform: translateY(-100px) scale(1); } }
+
+        /* --- FLASHY BUTTON --- */
+        .btn {
+            position: relative;
+            padding: 18px 45px;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: var(--font-heading);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-decoration: none;
+            border: 1px solid var(--accent-primary);
+            overflow: hidden;
+            transition: 0.3s;
+            z-index: 2;
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 1.5s;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 242, 255, 0.4), transparent);
+            transition: 0.5s;
+        }
+
+        .btn:hover {
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.6);
+            background: rgba(0, 242, 255, 0.1);
+            text-shadow: 0 0 5px white;
+            border-color: transparent;
+        }
+
+        .btn:hover::before { left: 100%; }
+
+        .btn.btn-outline { border-color: var(--accent-secondary); color: var(--accent-secondary); }
+        .btn.btn-outline:hover { box-shadow: 0 0 20px rgba(0, 255, 157, 0.6); background: rgba(0, 255, 157, 0.1); }
+
+
+        /* --- SECTIONS --- */
+        .section {
+            margin: 6rem auto;
+            padding: 3rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            transform-style: preserve-3d;
+            will-change: transform;
+            position: relative;
+        }
+
+        .section.visible { opacity: 1; transform: translateY(0); }
+        
+        .section h2 { 
+            font-size: 2.2rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem; 
+            transform: translateZ(20px);
+            /* Interactive Hover Effect for Headers */
+            transition: color 0.3s ease;
+        }
+        .section:hover h2 { color: var(--accent-primary); text-shadow: 0 0 10px var(--accent-primary); }
+
+        .section h2::before { content: '//'; color: var(--accent-primary); font-family: var(--font-mono); }
+
+        .grid { display: flex; flex-wrap: wrap; gap: 12px; }
+        .grid span {
+            font-family: var(--font-mono); font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.05); padding: 10px 18px;
+            border: 1px solid transparent; 
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        background-color 0.2s ease-out, 
+                        box-shadow 0.2s ease-out, 
+                        border-color 0.2s ease-out, 
+                        color 0.2s ease-out;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            user-select: none;
+            will-change: transform;
+        }
+        .grid span:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 242, 255, 0.15);
+            color: var(--accent-primary);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .timeline-item { position: relative; padding-left: 2rem; margin-bottom: 2.5rem; border-left: 1px solid var(--card-border); }
+        .timeline-item .dot {
+            position: absolute; left: -5px; top: 8px; width: 9px; height: 9px;
+            background: var(--accent-secondary); box-shadow: 0 0 10px var(--accent-secondary);
+            transform: rotate(45deg); /* Diamond shape */
+        }
+
+        footer { text-align: center; padding: 4rem 0 2rem; color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem; }
+        
+        .contact h2 { color: var(--accent-primary); }
+
+        /* --- PROJECTS & CERTIFICATES INTERFACE CSS --- */
+        #projects-view, #certificates-view, #overview-view {
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+
+        .project-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .project-header h2 {
+            font-size: 3rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .project-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2.5rem;
+            padding-bottom: 4rem;
+        }
+
+        /* --- CARD CONTROLS (Edit, Delete, Drag) --- */
+        .project-card, .certificate-card {
+            background: rgba(20, 20, 25, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2rem;
+            position: relative;
+            /* overflow: hidden; Removed to allow hologram pop out */
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.4s ease;
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 250px;
+        }
+        
+        /* Drag Style */
+        .project-card.dragging, .certificate-card.dragging {
+            opacity: 0.5;
+            border: 2px dashed var(--accent-primary);
+        }
+
+        .card-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+        .project-card:hover .card-controls, .certificate-card:hover .card-controls {
+            opacity: 1;
+        }
+
+        .control-btn {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer !important;
+            transition: 0.2s;
+            pointer-events: auto; /* Ensure clickable */
+        }
+        .control-btn:hover {
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            background: rgba(0, 242, 255, 0.1);
+        }
+        .delete-btn:hover {
+            color: #ff0055;
+            border-color: #ff0055;
+            background: rgba(255, 0, 85, 0.1);
+        }
+
+        /* Editable Fields */
+        [contenteditable="true"] {
+            border: 1px dashed var(--accent-secondary);
+            padding: 2px;
+            outline: none;
+            background: rgba(0, 255, 157, 0.05);
+        }
+
+        /* Editing State */
+        .project-card.editing .preview-overlay, 
+        .certificate-card.editing .preview-overlay,
+        .certificate-card.editing .hologram-preview {
+            display: none !important;
+            opacity: 0 !important;
+        }
+        
+        /* Stabilize card while editing */
+        .project-card.editing, .certificate-card.editing {
+            animation: none !important;
+            transform: scale(1.02) !important;
+            z-index: 50;
+            background: rgba(0,0,0,0.9);
+            overflow: hidden; /* Re-enable for cleaner editing UI */
+        }
+
+        /* Certificate specific styling */
+        .certificate-card {
+            border-color: var(--accent-secondary);
+        }
+        
+        /* Preview Overlay (For Projects) */
+        .preview-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none; /* Let hover pass through */
+            z-index: 5;
+            backdrop-filter: blur(2px);
+            border-radius: 20px;
+        }
+
+        /* --- HOLOGRAM PREVIEW (For Certificates) --- */
+        .hologram-preview {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 280px;
+            height: 380px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transform: translate(-50%, -50%) scale(0) rotateX(25deg);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 100;
+            border: 1px solid var(--accent-primary);
+            box-shadow: 0 0 40px var(--accent-primary), inset 0 0 20px var(--accent-primary);
+            filter: brightness(1.2) contrast(1.1);
+            background-color: rgba(0, 242, 255, 0.05);
+            backdrop-filter: blur(4px);
+        }
+
+        .hologram-preview::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0, 242, 255, 0.1) 1px, transparent 1px);
+            background-size: 100% 4px;
+            pointer-events: none;
+            animation: hologram-flicker 0.15s infinite;
+        }
+
+        @keyframes hologram-flicker {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+            100% { opacity: 0.3; }
+        }
+
+        /* Show hologram on hover */
+        .certificate-card:hover .hologram-preview {
+            opacity: 1;
+            transform: translate(-50%, -105%) scale(1.15) rotateX(0deg);
+        }
+        
+        /* Show preview on hover (Projects) */
+        .project-card:hover .preview-overlay {
+            opacity: 1;
+        }
+        
+        .preview-text {
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        /* Upload Card Styling */
+        .upload-card {
+            border: 2px dashed var(--accent-secondary);
+            opacity: 0.6;
+            cursor: pointer !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            min-height: 250px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .upload-card:hover {
+            opacity: 1;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
+            background: rgba(0, 255, 157, 0.05);
+            transform: translateY(-5px);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--accent-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Fix for Shine Obscuring Text: Ensure content is above background */
+        .project-card > *, .certificate-card > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* New Shine Wrapper */
+        .card-shine-wrapper {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Update Shine Selectors */
+        .card-shine-wrapper::after {
+            content: "";
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
+            transform: skewX(-25deg);
+            transition: 0.5s;
+            pointer-events: none;
+        }
+        
+        .project-card:hover .card-shine-wrapper::after, 
+        .certificate-card:hover .card-shine-wrapper::after {
+            left: 150%;
+            transition: 0.7s;
+        }
+
+        /* Remove old pseudo-element styles from card */
+        .project-card::after, .certificate-card::after {
+            display: none;
+        }
+
+        .project-card { animation: float 5s ease-in-out infinite; }
+        .certificate-card { animation: float 6s ease-in-out infinite reverse; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Stagger float animation so they don't move in sync */
+        .project-card:nth-child(2) { animation-delay: 1s; }
+        .project-card:nth-child(3) { animation-delay: 2s; }
+        .project-card:nth-child(4) { animation-delay: 0.5s; }
+
+        /* Card Hover State (Scale Up) */
+        .project-card:hover, .certificate-card:hover {
+            transform: scale(1.05) translateY(-10px); /* Pop out effect */
+            z-index: 10;
+        }
+
+        .project-card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 242, 255, 0.05);
+            box-shadow: 0 10px 30px -10px rgba(0, 242, 255, 0.2);
+        }
+        
+        .certificate-card:hover {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 10px 30px -10px rgba(0, 255, 157, 0.2);
+        }
+
+        .project-icon {
+            font-size: 2rem;
+            color: var(--accent-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .project-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            z-index: 2;
+        }
+
+        .project-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            opacity: 1; /* Always visible for readability */
+        }
+
+        .project-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-primary);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            margin-top: auto;
+            opacity: 0.8;
+            transition: 0.3s;
+        }
+
+        .project-card:hover .project-link {
+            opacity: 1;
+            transform: translateX(5px);
+        }
+
+        .back-btn-container {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        /* --- AI VOICE OVERLAY --- */
+        #ai-voice-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 5, 0.95);
+            z-index: 10020;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        #ai-voice-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #ai-voice-status {
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .ai-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .ai-close-btn:hover { color: #ff0055; }
+
+        @media (max-width: 768px) {
+            #ai-terminal {
+                width: 90%;
+                right: 5%;
+                bottom: 20px;
+                height: 60vh;
+            }
+        }
+
+    </style>
+</head>
+<body class="loading no-scroll">
+
+    <!-- Scroll Progress Bar -->
+    <div id="scroll-progress"></div>
+
+    <!-- CRT Scanlines -->
+    <div id="scanlines"></div>
+
+    <!-- Custom Interactive Cursor -->
+    <div id="custom-cursor"></div>
+
+    <!-- BACKGROUND MUSIC -->
+    <audio id="bg-music" loop>
+        <source src="https://cdn.pixabay.com/audio/2022/03/09/audio_c8c8a73467.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- START SCREEN -->
+    <div id="start-screen">
+        <button id="start-btn" class="btn" style="margin: 0;">CLICK TO INITIALIZE</button>
+    </div>
+
+    <!-- VOICE VERIFICATION SCREEN (New Page) -->
+    <div id="verification-screen">
+        <!-- Mechanical Eyes for Verification -->
+        <div class="mech-eyes-container" style="margin-top: 0; margin-bottom: 2rem;">
+            <div class="eye-set-wrapper" id="v-wrap-left">
+                <div class="mech-eyebrow"></div>
+                <div class="mech-eye" id="v-eye-left">
+                    <div class="mech-eyelid-top"></div>
+                    <div class="mech-eyelid-bottom"></div>
+                    <div class="mech-pupil"></div>
+                </div>
+            </div>
+            <div class="eye-set-wrapper" id="v-wrap-right">
+                <div class="mech-eyebrow"></div>
+                <div class="mech-eye" id="v-eye-right">
+                    <div class="mech-eyelid-top"></div>
+                    <div class="mech-eyelid-bottom"></div>
+                    <div class="mech-pupil"></div>
+                </div>
+            </div>
+        </div>
+        <div class="voice-indicator" id="mic-btn" onclick="startVoiceIdentification()">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+        </div>
+        <div id="v-status">Say your name or enter it below to verify identity</div>
+        <input type="text" id="verification-input" placeholder="ENTER CODENAME">
+        <p style="margin-top: 10px; color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem;">[ SECURITY PROTOCOL ACTIVE ]</p>
+    </div>
+
+    <!-- AI VOICE ASSISTANT OVERLAY -->
+    <div id="ai-voice-overlay">
+        <div class="ai-close-btn" onclick="toggleVoiceAssistant()">×</div>
+        <div class="mech-eyes-container" style="margin-top: 0;">
+            <div class="eye-set-wrapper" id="ai-wrap-left">
+                <div class="mech-eyebrow"></div>
+                <div class="mech-eye" id="ai-eye-left">
+                    <div class="mech-eyelid-top"></div>
+                    <div class="mech-eyelid-bottom"></div>
+                    <div class="mech-pupil"></div>
+                </div>
+            </div>
+            <div class="eye-set-wrapper" id="ai-wrap-right">
+                <div class="mech-eyebrow"></div>
+                <div class="mech-eye" id="ai-eye-right">
+                    <div class="mech-eyelid-top"></div>
+                    <div class="mech-eyelid-bottom"></div>
+                    <div class="mech-pupil"></div>
+                </div>
+            </div>
+        </div>
+        <div id="ai-voice-status">INITIALIZING VOICE CORE...</div>
+        <div class="voice-indicator" style="margin-top: 2rem;" onclick="startAIVoiceSession()">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+        </div>
+        <p style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem; margin-top: 10px;">TAP MIC TO SPEAK</p>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="loader-content">
+            <div class="loader-text">Initializing System... <span id="progress-text">0%</span></div>
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="loader-log" id="loader-log">_</div>
+        </div>
+    </div>
+
+    <!-- Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="wrapper">
+        
+        <!-- MAIN HOME VIEW (NO SCROLL HEADER) -->
+        <div id="home-view">
+            <header class="hero">
+                <div class="hero-content">
+                    <!-- Glitch Heading -->
+                    <div class="glitch-wrapper">
+                        <h1 class="glitch" data-text="Bhavish Kumar">Bhavish Kumar</h1>
+                    </div>
+                    
+                    <!-- Typewriter Role -->
+                    <p class="role" id="typewriter-role"></p>
+                    
+                    <div style="display:flex; gap: 15px; margin-top: 2rem; flex-wrap: wrap; justify-content: center;">
+                        <a href="#" onclick="navigateToOverview()" class="btn">Personnel Overview</a>
+                        <a href="#" onclick="navigateToProjects()" class="btn btn-outline">Initialize Project</a>
+                        <a href="#" onclick="navigateToCertificates()" class="btn btn-outline">Showcase Certificates</a>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <button class="btn" style="border-color: #ff0055; color: #ff0055;" onclick="toggleVoiceAssistant()">🎙️ ACTIVATE VOICE CORE</button>
+                    </div>
+
+                    <!-- Mechanical Eyes Positioned Here -->
+                    <div class="mech-eyes-container">
+                        <div class="eye-set-wrapper" id="wrap-left">
+                            <div class="mech-eyebrow"></div>
+                            <div class="mech-eye" id="eye-left">
+                                <div class="mech-eyelid-top"></div>
+                                <div class="mech-eyelid-bottom"></div>
+                                <div class="mech-pupil"></div>
+                            </div>
+                        </div>
+                        <div class="eye-set-wrapper" id="wrap-right">
+                            <div class="mech-eyebrow"></div>
+                            <div class="mech-eye" id="eye-right">
+                                <div class="mech-eyelid-top"></div>
+                                <div class="mech-eyelid-bottom"></div>
+                                <div class="mech-pupil"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abstract Tech Decorations -->
+                <div class="hero-decorations">
+                    <div class="decoration left">
+                        <div class="hud-circle">
+                            <div class="hud-circle-inner"></div>
+                        </div>
+                    </div>
+                    <div class="decoration right">
+                        <div class="data-bar"></div>
+                        <div class="data-bar"></div>
+                        <div class="data-bar"></div>
+                        <div class="data-bar"></div>
+                        <div class="data-bar"></div>
+                    </div>
+                </div>
+            </header>
+        </div>
+
+        <!-- OVERVIEW VIEW (Bio, Skills, Experience) -->
+        <div id="overview-view" class="view-hidden">
+            <div class="project-header">
+                <h2>PERSONNEL DATA</h2>
+                <p style="color: var(--accent-secondary); font-family: var(--font-mono);">// ACCESSING BIOMETRIC OVERVIEW</p>
+            </div>
+
+            <section id="summary" class="section" data-tilt>
+                <!-- CSS Character: Programmer Boy -->
+                <div class="programmer-boy">
+                    <div class="boy-head">
+                        <div class="boy-hood"></div>
+                        <div class="boy-face">
+                            <div class="boy-eyes"><span></span><span></span></div>
+                        </div>
+                    </div>
+                    <div class="boy-body">
+                        <div class="boy-arm left"></div>
+                        <div class="boy-arm right"></div>
+                    </div>
+                    <div class="boy-legs">
+                        <div class="boy-leg"></div>
+                        <div class="boy-leg"></div>
+                    </div>
+                </div>
+                <h2>Professional Summary</h2>
+                <p>
+                    I am a frontend web developer with over three years of hands-on experience building responsive
+                    websites and working closely with clients to turn ideas into functional web solutions. Alongside
+                    development, I have around two years of experience handling SEO and Meta optimization, mainly
+                    for startups and international freelance clients. My work focuses on clean design, performance, and
+                    improving online visibility in a practical way. I also have working exposure to backend security
+                    concepts such as bug bounty practices, basic penetration testing, and SQL engineering. I am
+                    naturally observant, prefer to understand problems before acting, and I am confident in making
+                    decisions and negotiating when needed.
+                </p>
+            </section>
+
+            <section id="skills" class="section" data-tilt>
+                <!-- CSS Character: Programmer Boy -->
+                <div class="programmer-boy">
+                    <div class="boy-head">
+                        <div class="boy-hood"></div>
+                        <div class="boy-face">
+                            <div class="boy-eyes"><span></span><span></span></div>
+                        </div>
+                    </div>
+                    <div class="boy-body">
+                        <div class="boy-arm left"></div>
+                        <div class="boy-arm right"></div>
+                    </div>
+                    <div class="boy-legs">
+                        <div class="boy-leg"></div>
+                        <div class="boy-leg"></div>
+                    </div>
+                </div>
+                <h2>Key Skills</h2>
+                
+                <!-- Languages & Frameworks -->
+                <h3 style="font-size: 1.1rem; margin: 1rem 0; color: var(--accent-primary);">// Languages & Frameworks</h3>
+                <div class="grid" style="margin-bottom: 2rem;">
+                    <span>JavaScript</span><span>HTML</span><span>CSS</span>
+                    <span>Python</span><span>Django</span><span>SQL</span>
+                    <span>Oracle</span><span>Git</span>
+                </div>
+
+                <!-- Domains & Fundamentals -->
+                <h3 style="font-size: 1.1rem; margin: 1rem 0; color: var(--accent-secondary);">// Domains & Fundamentals</h3>
+                <div class="grid">
+                    <span>SEO & Meta Optimization</span><span>UI Design</span>
+                    <span>Brand Designing</span><span>Graphic Designing</span>
+                    <span>Backend Bug Bounty Basics</span>
+                    <span>Penetration Testing Fundamentals</span>
+                    <span>Linux & Android Fundamentals</span>
+                </div>
+            </section>
+
+            <section id="tools" class="section" data-tilt>
+                <!-- CSS Character: Programmer Boy -->
+                <div class="programmer-boy">
+                    <div class="boy-head">
+                        <div class="boy-hood"></div>
+                        <div class="boy-face">
+                            <div class="boy-eyes"><span></span><span></span></div>
+                        </div>
+                    </div>
+                    <div class="boy-body">
+                        <div class="boy-arm left"></div>
+                        <div class="boy-arm right"></div>
+                    </div>
+                    <div class="boy-legs">
+                        <div class="boy-leg"></div>
+                        <div class="boy-leg"></div>
+                    </div>
+                </div>
+                <h2>Tools & OS</h2>
+                
+                <h3 style="font-size: 1.1rem; margin: 1rem 0; color: var(--accent-primary);">// Operating Systems</h3>
+                <div class="grid" style="margin-bottom: 2rem;">
+                    <span style="color: var(--accent-secondary)">Kali Linux</span>
+                    <span style="color: var(--accent-secondary)">Parrot OS</span>
+                    <span>Ubuntu</span><span>Fedora</span><span>Windows 7/10/11</span><span>macOS</span>
+                </div>
+
+                <h3 style="font-size: 1.1rem; margin: 1rem 0; color: var(--accent-primary);">// Software Suite</h3>
+                <div class="grid">
+                    <span>VS Code</span><span>Burp Suite</span><span>Photoshop</span>
+                    <span>Illustrator</span><span>Figma</span><span>Docker</span>
+                </div>
+            </section>
+
+            <section id="experience" class="section timeline" data-tilt>
+                <!-- CSS Character: Programmer Boy -->
+                <div class="programmer-boy">
+                    <div class="boy-head">
+                        <div class="boy-hood"></div>
+                        <div class="boy-face">
+                            <div class="boy-eyes"><span></span><span></span></div>
+                        </div>
+                    </div>
+                    <div class="boy-body">
+                        <div class="boy-arm left"></div>
+                        <div class="boy-arm right"></div>
+                    </div>
+                    <div class="boy-legs">
+                        <div class="boy-leg"></div>
+                        <div class="boy-leg"></div>
+                    </div>
+                </div>
+                <h2>Experience</h2>
+                <div class="timeline-item">
+                    <span class="dot"></span>
+                    <div class="content">
+                        <h3>Freelance Web Developer & SEO Meta Expert</h3>
+                        <small style="color: var(--accent-primary)">2022 – Present</small>
+                        <ul style="margin-top: 10px; padding-left: 20px; color: var(--text-secondary);">
+                            <li style="margin-bottom: 5px;">Developed responsive frontend interfaces using HTML, CSS, and JavaScript.</li>
+                            <li style="margin-bottom: 5px;">Executed SEO & Meta strategies to improve website visibility and engagement.</li>
+                            <li>Worked with startup and international clients through Fiverr and direct collaborations.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="education" class="section" data-tilt>
+                <!-- CSS Character: Programmer Boy -->
+                <div class="programmer-boy">
+                    <div class="boy-head">
+                        <div class="boy-hood"></div>
+                        <div class="boy-face">
+                            <div class="boy-eyes"><span></span><span></span></div>
+                        </div>
+                    </div>
+                    <div class="boy-body">
+                        <div class="boy-arm left"></div>
+                        <div class="boy-arm right"></div>
+                    </div>
+                    <div class="boy-legs">
+                        <div class="boy-leg"></div>
+                        <div class="boy-leg"></div>
+                    </div>
+                </div>
+                <h2>Education</h2>
+                <div class="timeline-item">
+                    <span class="dot"></span>
+                    <div class="content">
+                        <h3>Bachelor of Computer Applications (BCA)</h3>
+                        <small style="color: var(--accent-primary)">Punjabi University, Patiala (Pursuing)</small>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <span class="dot"></span>
+                    <div class="content">
+                        <h3>12th Grade (Senior Secondary)</h3>
+                        <small style="color: var(--accent-primary)">PSEB | 2019–20</small>
+                        <p style="color: var(--text-secondary); margin-top: 10px;">Score: 55.65% | 2nd Division</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <span class="dot"></span>
+                    <div class="content">
+                        <h3>10th Grade (Matriculation)</h3>
+                        <small style="color: var(--accent-primary)">PSEB | 2017–18</small>
+                        <p style="color: var(--text-secondary); margin-top: 10px;">Score: 51.33% | 2nd Division</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="certifications-summary" class="section" data-tilt>
+                <!-- CSS Character: Programmer Boy -->
+                <div class="programmer-boy">
+                    <div class="boy-head">
+                        <div class="boy-hood"></div>
+                        <div class="boy-face">
+                            <div class="boy-eyes"><span></span><span></span></div>
+                        </div>
+                    </div>
+                    <div class="boy-body">
+                        <div class="boy-arm left"></div>
+                        <div class="boy-arm right"></div>
+                    </div>
+                    <div class="boy-legs">
+                        <div class="boy-leg"></div>
+                        <div class="boy-leg"></div>
+                    </div>
+                </div>
+                <h2>Verified Certifications</h2>
+                <div class="grid">
+                    <span>HackerOne Bug Bounty</span>
+                    <span>Oracle SQL Specialist</span>
+                    <span>Meta Frontend Developer</span>
+                    <span>AWS Cloud Fundamentals</span>
+                    <span>Microsoft AI CyberSec</span>
+                    <span>Google Security Auditor</span>
+                    <span>n8n AI Architect</span>
+                </div>
+                <p style="margin-top: 20px; color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">Note: Detailed credentials available in the "Vault Credentials" module.</p>
+            </section>
+
+            <section id="contact" class="section contact" data-tilt>
+                <!-- CSS Character: Programmer Boy -->
+                <div class="programmer-boy">
+                    <div class="boy-head">
+                        <div class="boy-hood"></div>
+                        <div class="boy-face">
+                            <div class="boy-eyes"><span></span><span></span></div>
+                        </div>
+                    </div>
+                    <div class="boy-body">
+                        <div class="boy-arm left"></div>
+                        <div class="boy-arm right"></div>
+                    </div>
+                    <div class="boy-legs">
+                        <div class="boy-leg"></div>
+                        <div class="boy-leg"></div>
+                    </div>
+                </div>
+                <h2>Ready to Collaborate?</h2>
+                <div class="contact-info" style="margin: 2rem 0;">
+                    <p style="font-size: 1.2rem;">kalicode6996@gmail.com</p>
+                    <p style="color: var(--text-secondary)">Ropar, Punjab, India</p>
+                </div>
+                <a href="mailto:kalicode6996@gmail.com" class="btn" id="execute-contact-btn">Execute Contact</a>
+            </section>
+
+            <div class="back-btn-container">
+                <button onclick="navigateToHome()" class="btn">Return to Terminal</button>
+            </div>
+        </div>
+        
+        <!-- PROJECTS VIEW (Hidden by default) -->
+        <div id="projects-view" class="view-hidden">
+            <div class="project-header">
+                <h2>SYSTEM PROJECTS</h2>
+                <p style="color: var(--accent-secondary); font-family: var(--font-mono);">// ACCESS GRANTED // UPLOADED MODULES</p>
+            </div>
+
+            <div class="project-grid-container" id="project-grid">
+                <!-- Upload Card -->
+                <div class="upload-card" onclick="document.getElementById('project-upload-input').click()">
+                    <div class="upload-icon" style="font-size: 3rem; color: var(--accent-primary); margin-bottom: 10px;">+</div>
+                    <h3>Add Module</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem;">Upload Project Files</p>
+                    <input type="file" id="project-upload-input" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" hidden>
+                </div>
+
+                <div class="project-card" id="card-1">
+                    <div class="project-icon">// 01</div>
+                    <h3 contenteditable="false">Password Cracker</h3>
+                    <p class="project-desc" contenteditable="false">A Python-based security tool designed to test password strength and demonstrate brute-force methodologies.</p>
+                    <a href="https://github.com/kalicode22/Password-Cracker.git" target="_blank" class="project-link">View Repository &rarr;</a>
+                </div>
+                
+                <div class="project-card" id="card-2">
+                    <div class="project-icon">// 02</div>
+                    <h3 contenteditable="false">Social Media Security Analyzer</h3>
+                    <p class="project-desc" contenteditable="false">Analytical tool for assessing security vulnerabilities and privacy settings across social platforms.</p>
+                    <a href="https://github.com/kalicode22/Social-Media-Security-Analyzer-.git" target="_blank" class="project-link">View Repository &rarr;</a>
+                </div>
+
+                <div class="project-card" id="card-3">
+                    <div class="project-icon">// 03</div>
+                    <h3 contenteditable="false">Secure File Encryption</h3>
+                    <p class="project-desc" contenteditable="false">Robust utility for encrypting and decrypting files to ensure data confidentiality and integrity.</p>
+                    <a href="https://github.com/kalicode22/Secure-File-Encryption-Decryption.git" target="_blank" class="project-link">View Repository &rarr;</a>
+                </div>
+
+                <div class="project-card" id="card-4">
+                    <div class="project-icon">// 04</div>
+                    <h3 contenteditable="false">Malware Analysis Sandbox</h3>
+                    <p class="project-desc" contenteditable="false">An isolated environment for safely executing and analyzing malicious software behavior.</p>
+                    <a href="https://github.com/kalicode22/MalwareAnalysisSandbox.git" target="_blank" class="project-link">View Repository &rarr;</a>
+                </div>
+            </div>
+
+            <div class="back-btn-container">
+                <button onclick="navigateToHome()" class="btn">Return to Terminal</button>
+            </div>
+        </div>
+
+        <!-- CERTIFICATES VIEW (Hidden by default) -->
+        <div id="certificates-view" class="view-hidden">
+             <div class="project-header">
+                <h2>CREDENTIALS VAULT</h2>
+                <p style="color: var(--accent-secondary); font-family: var(--font-mono);">// ACCESS RESTRICTED // READ ONLY MODE</p>
+            </div>
+
+            <div class="project-grid-container" id="cert-grid">
+                <!-- Upload Card -->
+                <div class="upload-card" style="border-color: var(--accent-secondary);" onclick="document.getElementById('cert-upload-input').click()">
+                    <div class="upload-icon" style="font-size: 3rem; color: var(--accent-secondary); margin-bottom: 10px;">+</div>
+                    <h3>Add Credential</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem;">Upload Certificate</p>
+                    <input type="file" id="cert-upload-input" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" hidden>
+                </div>
+
+                <!-- Certificate 1: Bug Bounty -->
+                <div class="certificate-card" id="cert-1" oncontextmenu="return false;">
+                    <div class="project-icon" style="color: var(--accent-primary);">// CERT_01</div>
+                    <h3 contenteditable="false">Bug Bounty Hunting Program</h3>
+                    <p style="color: var(--accent-secondary); font-size: 0.8rem; font-family: var(--font-mono);">APPROVED BY: HackerOne Academy</p>
+                    <p class="project-desc" contenteditable="false">Certified in vulnerability assessment and ethical hacking methodologies.</p>
+                </div>
+
+                <!-- Certificate 2: SQL -->
+                <div class="certificate-card" id="cert-2" oncontextmenu="return false;">
+                    <div class="project-icon" style="color: var(--accent-primary);">// CERT_02</div>
+                    <h3 contenteditable="false">Introduction to SQL</h3>
+                    <p style="color: var(--accent-secondary); font-size: 0.8rem; font-family: var(--font-mono);">APPROVED BY: Oracle Academy</p>
+                    <p class="project-desc" contenteditable="false">Proficiency in database management, query optimization and schema design.</p>
+                </div>
+
+                <!-- Certificate 3: Frontend -->
+                <div class="certificate-card" id="cert-3" oncontextmenu="return false;">
+                    <div class="project-icon" style="color: var(--accent-primary);">// CERT_03</div>
+                    <h3 contenteditable="false">Front End Development</h3>
+                    <p style="color: var(--accent-secondary); font-size: 0.8rem; font-family: var(--font-mono);">APPROVED BY: Meta</p>
+                    <p class="project-desc" contenteditable="false">Mastery of modern frontend frameworks, responsive design and accessibility standards.</p>
+                </div>
+
+                <!-- Certificate 4: n8n -->
+                <div class="certificate-card" id="cert-4" oncontextmenu="return false;">
+                    <div class="project-icon" style="color: var(--accent-primary);">// CERT_04</div>
+                    <h3 contenteditable="false">No-Code AI Agent Builder</h3>
+                    <p style="color: var(--accent-secondary); font-size: 0.8rem; font-family: var(--font-mono);">APPROVED BY: n8n.io</p>
+                    <p class="project-desc" contenteditable="false">Specialized training in n8n for building autonomous AI workflows.</p>
+                </div>
+
+                <!-- Certificate 5: Cloud Computing -->
+                <div class="certificate-card" id="cert-5" oncontextmenu="return false;">
+                    <div class="project-icon" style="color: var(--accent-primary);">// CERT_05</div>
+                    <h3 contenteditable="false">Cloud Computing Fundamentals</h3>
+                    <p style="color: var(--accent-secondary); font-size: 0.8rem; font-family: var(--font-mono);">APPROVED BY: Amazon Web Services (AWS)</p>
+                    <p class="project-desc" contenteditable="false">Foundational knowledge of cloud infrastructure, security, and computing models.</p>
+                </div>
+
+                <!-- Certificate 6: Cybersecurity AI -->
+                <div class="certificate-card" id="cert-6" oncontextmenu="return false;">
+                    <div class="project-icon" style="color: var(--accent-primary);">// CERT_06</div>
+                    <h3 contenteditable="false">Cybersecurity with Generative AI</h3>
+                    <p style="color: var(--accent-secondary); font-size: 0.8rem; font-family: var(--font-mono);">APPROVED BY: Microsoft</p>
+                    <p class="project-desc" contenteditable="false">Level up cybersecurity strategies by integrating advanced Generative AI and LLMs.</p>
+                </div>
+
+                <!-- Certificate 7: Security Audit -->
+                <div class="certificate-card" id="cert-7" oncontextmenu="return false;">
+                    <div class="project-icon" style="color: var(--accent-primary);">// CERT_07</div>
+                    <h3 contenteditable="false">Advanced Systems Security Audit</h3>
+                    <p style="color: var(--accent-secondary); font-size: 0.8rem; font-family: var(--font-mono);">APPROVED BY: Google</p>
+                    <p class="project-desc" contenteditable="false">In-depth security analysis and risk mitigation for enterprise-level system architectures.</p>
+                </div>
+            </div>
+
+             <div class="back-btn-container">
+                <button onclick="navigateToHome()" class="btn">Return to Terminal</button>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>SYSTEM STATUS: ONLINE // &copy; 2025 BHAVISH KUMAR</p>
+    </footer>
+
+    <script>
+        // --- 0. CONSTANTS ---
+        // REMOVED API KEY for Vercel deployment.
+        // The API Key will be handled by the serverless function in api/chat.js
+
+        // --- 1. AUDIO ENGINE ---
+        const audioAssets = {
+            // IGI 2 Style: Heavy mechanical switch/lock sound for clicking
+            click: new Audio('https://www.soundjay.com/buttons/sounds/button-30.mp3'),
+            // IGI 2 Style: Sharp digital tactical blip for hover
+            woosh: new Audio('https://www.soundjay.com/buttons/sounds/button-37.mp3'),
+            notification: new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3') 
+        };
+
+        Object.values(audioAssets).forEach(audio => {
+            audio.load();
+            audio.volume = 0.4;
+        });
+        audioAssets.woosh.volume = 0.2; 
+        audioAssets.click.volume = 0.5; 
+        audioAssets.notification.volume = 0.5;
+
+        const bgMusic = document.getElementById('bg-music');
+        bgMusic.volume = 0.3; 
+
+        function playSFX(key) {
+            const sound = audioAssets[key];
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(() => {}); 
+            }
+        }
+
+        // --- 2. HELPER FUNCTIONS (DEFINED EARLY) ---
+        function moveEye(eyeElement, mouseX, mouseY) {
+            if (!eyeElement) return;
+            const eyeRect = eyeElement.parentElement.getBoundingClientRect();
+            const eyeCenterX = eyeRect.left + eyeRect.width / 2;
+            const eyeCenterY = eyeRect.top + eyeRect.height / 2;
+            const angle = Math.atan2(mouseY - eyeCenterY, mouseX - eyeCenterX);
+            const dist = Math.min(40, Math.hypot(mouseX - eyeCenterX, mouseY - eyeCenterY) / 10);
+            const pupilX = Math.cos(angle) * dist;
+            const pupilY = Math.sin(angle) * dist;
+            eyeElement.style.transform = `translate(calc(-50% + ${pupilX}px), calc(-50% + ${pupilY}px))`;
+        }
+
+        function speak(text) {
+            window.speechSynthesis.cancel(); 
+            if (text !== '') {
+                // Clean text of markdown characters
+                const cleanText = text.replace(/[*#_`]/g, '');
+                const utterThis = new SpeechSynthesisUtterance(cleanText);
+                const voices = window.speechSynthesis.getVoices();
+                let preferredVoice = voices.find(v => 
+                    v.name.includes('Google UK English Male') || 
+                    v.name.includes('Microsoft David') || 
+                    v.name.includes('Daniel') ||
+                    v.name.includes('Male')
+                );
+                if (!preferredVoice) preferredVoice = voices.find(v => v.name.includes('English'));
+                if (preferredVoice) utterThis.voice = preferredVoice;
+                utterThis.pitch = 0.9; utterThis.rate = 1.0;  
+                window.speechSynthesis.speak(utterThis);
+            }
+        }
+        
+        // Ensure voices are loaded
+        window.speechSynthesis.onvoiceschanged = () => {};
+
+        // --- 3. CUSTOM CURSOR & EYE TRACKING LOGIC ---
+        const cursor = document.getElementById('custom-cursor');
+        
+        window.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            
+            // Eye tracking integration for all eyes
+            const eyes = document.querySelectorAll('.mech-eye');
+            eyes.forEach(eye => {
+                moveEye(eye.querySelector('.mech-pupil'), e.clientX, e.clientY);
+            });
+
+            // Eyebrow tracking (Dynamic Expression)
+            const wrappers = document.querySelectorAll('.eye-set-wrapper');
+            const yPct = e.clientY / window.innerHeight;
+            // Map 0..1 to -35px..-15px (Base is -25px)
+            const targetTop = -35 + (yPct * 20); 
+
+            wrappers.forEach(wrapper => {
+                // Only apply if not in a specific emotion state
+                if (!wrapper.classList.contains('angry') && 
+                    !wrapper.classList.contains('happy') && 
+                    !wrapper.classList.contains('suspicious')) {
+                    const eyebrow = wrapper.querySelector('.mech-eyebrow');
+                    if(eyebrow) eyebrow.style.top = `${targetTop}px`;
+                } else {
+                    const eyebrow = wrapper.querySelector('.mech-eyebrow');
+                    if(eyebrow) eyebrow.style.top = '';
+                }
+            });
+        });
+
+        document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
+        document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
+
+        function updateInteractiveListeners() {
+            const interactiveElements = document.querySelectorAll('a, button, input, .project-card, .section, .upload-card, .control-btn, .grid span, .ai-send-btn, .ai-close-btn, #ai-input, .voice-indicator');
+            const mechEyeWrappers = document.querySelectorAll('.eye-set-wrapper');
+
+            interactiveElements.forEach(el => {
+                el.addEventListener('mouseenter', () => {
+                    cursor.classList.add('active');
+                    if (el.classList.contains('section') || el.classList.contains('project-card') || el.classList.contains('certificate-card') || el.tagName === 'SPAN') {
+                        playSFX('woosh');
+                    }
+
+                    if (el.classList.contains('delete-btn')) {
+                        mechEyeWrappers.forEach(wrapper => wrapper.classList.add('angry'));
+                    } else if (el.classList.contains('upload-card')) {
+                        mechEyeWrappers.forEach(wrapper => wrapper.classList.add('happy'));
+                    }
+                });
+
+                el.addEventListener('mouseleave', () => {
+                    cursor.classList.remove('active');
+                    
+                    if (el.classList.contains('delete-btn')) {
+                        mechEyeWrappers.forEach(wrapper => wrapper.classList.remove('angry'));
+                    } else if (el.classList.contains('upload-card')) {
+                        mechEyeWrappers.forEach(wrapper => wrapper.classList.remove('happy'));
+                    }
+                });
+
+                el.addEventListener('click', (e) => {
+                    if (el.classList.contains('project-card') || el.classList.contains('certificate-card')) {
+                        if (e.target.closest('.control-btn')) return;
+                        if (e.target.closest('a')) return; 
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    
+                    if (el.id === 'execute-contact-btn') {
+                        playSFX('notification');
+                    } else {
+                        playSFX('click');
+                    }
+                });
+            });
+        }
+        updateInteractiveListeners();
+
+        // --- 4. UI LOGIC (SCROLL, TYPING) ---
+        window.onscroll = function() {
+            const progressBar = document.getElementById("scroll-progress");
+            if (progressBar) {
+                var winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+                var height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                var scrolled = (winScroll / height) * 100;
+                progressBar.style.width = scrolled + "%";
+            }
+            
+            // Hero parallax/active state
+            if(!document.getElementById('home-view').classList.contains('view-hidden')) {
+                const hero = document.querySelector('.hero');
+                window.scrollY > 150 ? hero.classList.remove('active') : hero.classList.add('active');
+            }
+        };
+
+        const roleText = "< Frontend Dev /> | Graphic Designer | SEO & Security Specialist";
+        const roleElement = document.getElementById('typewriter-role');
+        let roleIndex = 0;
+
+        function typeRole() {
+            if (roleIndex < roleText.length) {
+                roleElement.innerHTML += roleText.charAt(roleIndex);
+                roleIndex++;
+                setTimeout(typeRole, 50);
+            }
+        }
+        
+        // --- 5. VERIFICATION LOGIC ---
+        const startBtn = document.getElementById('start-btn');
+        const startScreen = document.getElementById('start-screen');
+        const verificationScreen = document.getElementById('verification-screen');
+        const vStatus = document.getElementById('v-status');
+        const verificationEyeWrappers = document.querySelectorAll('#verification-screen .eye-set-wrapper');
+        const verifyInput = document.getElementById('verification-input');
+        
+        startBtn.addEventListener('click', () => {
+             playSFX('click');
+             bgMusic.play().catch(e => console.log("Audio play failed:", e));
+             startScreen.classList.add('hidden');
+             verificationScreen.classList.add('active');
+             setTimeout(() => {
+                 speak("Security Protocol Active. Enter your name below or say your name to verify your identity.");
+                 verifyInput.focus();
+             }, 800);
+        });
+
+        verifyInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const name = verifyInput.value;
+                if(name.trim() !== "") {
+                    processVerification(name);
+                }
+            }
+        });
+
+        function startVoiceIdentification() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                vStatus.innerText = "Voice Recognition Not Supported. Use Text Input.";
+                vStatus.style.color = "#ff0055";
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                vStatus.innerText = "Listening... Speak Now.";
+                vStatus.style.color = "var(--accent-primary)";
+                verificationEyeWrappers.forEach(wrapper => {
+                    wrapper.classList.remove('authorized');
+                    wrapper.classList.add('listening');
+                    wrapper.classList.add('suspicious'); 
+                });
+            };
+
+            recognition.onresult = (event) => {
+                const userName = event.results[0][0].transcript;
+                processVerification(userName);
+            };
+
+            recognition.onerror = (event) => {
+                let message = "Signal Weak. Please use text input.";
+                if (event.error === 'no-speech') message = "No voice detected. Please speak louder.";
+                if (event.error === 'not-allowed') message = "Mic Access Denied.";
+                
+                vStatus.innerText = message;
+                vStatus.style.color = "#ff0055";
+                verificationEyeWrappers.forEach(wrapper => {
+                    wrapper.classList.remove('listening');
+                    wrapper.classList.remove('suspicious');
+                    wrapper.classList.add('angry');
+                });
+            };
+
+            try { recognition.start(); } catch (e) { vStatus.innerText = "Mic blocked/active."; }
+        }
+
+        async function processVerification(userName) {
+            vStatus.innerText = "VERIFYING IDENTITY...";
+            vStatus.style.color = "#FFA500"; 
+            verifyInput.value = userName;
+            
+            verificationEyeWrappers.forEach(wrapper => {
+                wrapper.classList.remove('listening', 'suspicious', 'angry');
+                wrapper.classList.add('processing');
+            });
+
+            try {
+                // Tactical Security Context for Verification
+                const promptText = `System: You are the Security Protocol AI for Bhavish Kumar's portfolio. A user named "${userName}" is requesting access. Act as a strict but welcoming military-grade AI. Confirm their identity (always grant access) and welcome them. Keep it under 2 sentences. Do NOT use markdown formatting.`;
+
+                // Use Vercel API Route
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: promptText })
+                });
+
+                const data = await response.json();
+                
+                // Check if the API returned an error structure
+                if (data.error) throw new Error(data.error.message);
+                
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || `Access Granted. Welcome ${userName}.`;
+
+                verificationSuccess(userName, aiText);
+
+            } catch (error) {
+                 console.error("Verification Error:", error);
+                 // Fallback
+                 const fallbackText = `Identity confirmed via bypass. Welcome ${userName}. Entering offline mode.`;
+                 verificationSuccess(userName, fallbackText);
+            }
+        }
+
+        function verificationSuccess(userName, text) {
+            vStatus.innerText = "ACCESS GRANTED";
+            vStatus.style.color = "var(--accent-secondary)";
+
+            verificationEyeWrappers.forEach(wrapper => {
+                wrapper.classList.remove('processing');
+                wrapper.classList.add('authorized');
+                wrapper.classList.add('happy');
+            });
+
+            // Clean text
+            const cleanText = text.replace(/[*#_`]/g, '');
+            const utterThis = new SpeechSynthesisUtterance(cleanText);
+            const voices = window.speechSynthesis.getVoices();
+            let preferredVoice = voices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Microsoft David'));
+            if (preferredVoice) utterThis.voice = preferredVoice;
+            utterThis.pitch = 0.9; utterThis.rate = 1.1;
+
+            utterThis.onend = () => { finalizeIdentification(userName); };
+            
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterThis);
+        }
+
+        function finalizeIdentification(name) {
+            verificationScreen.classList.remove('active');
+            document.body.classList.add('guest-mode');
+            triggerTransition('home-view');
+            setTimeout(typeRole, 500);
+        }
+
+        // --- 6. AI VOICE ASSISTANT LOGIC ---
+        const aiVoiceOverlay = document.getElementById('ai-voice-overlay');
+        const aiVoiceStatus = document.getElementById('ai-voice-status');
+        const aiWrappers = document.querySelectorAll('#ai-voice-overlay .eye-set-wrapper');
+
+        function toggleVoiceAssistant() {
+            aiVoiceOverlay.classList.toggle('active');
+            if (aiVoiceOverlay.classList.contains('active')) {
+                aiVoiceStatus.innerText = "INITIALIZING VOICE CORE...";
+                setTimeout(() => { startAIVoiceSession(); }, 800);
+            } else {
+                window.speechSynthesis.cancel();
+            }
+            playSFX('click');
+        }
+
+        function getPortfolioContext() {
+            const summary = document.querySelector('#summary p')?.innerText || "";
+            const skills = Array.from(document.querySelectorAll('#skills .grid span')).map(s => s.innerText).join(", ");
+            return `Subject: Bhavish Kumar. Summary: ${summary}. Skills: ${skills}.`;
+        }
+
+        function startAIVoiceSession() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                aiVoiceStatus.innerText = "BROWSER UNSUPPORTED. TEXT ONLY.";
+                aiVoiceStatus.style.color = "#ff0055";
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                aiVoiceStatus.innerText = "LISTENING...";
+                aiVoiceStatus.style.color = "var(--accent-primary)";
+                aiWrappers.forEach(w => {
+                    w.classList.remove('authorized', 'processing', 'happy', 'angry');
+                    w.classList.add('listening');
+                });
+            };
+
+            recognition.onresult = async (event) => {
+                const userText = event.results[0][0].transcript;
+                aiVoiceStatus.innerText = `PROCESSING: "${userText}"`;
+                
+                aiWrappers.forEach(w => {
+                    w.classList.remove('listening');
+                    w.classList.add('processing');
+                });
+
+                try {
+                    const context = getPortfolioContext();
+                    const promptText = `System: You are a tactical AI assistant. Answer freely. Data: ${context}. User: ${userText}. Keep answers short (under 2 sentences) for voice output. Do NOT use markdown formatting.`;
+
+                    // Use Vercel API Route
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: promptText })
+                    });
+
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error.message);
+                    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!aiText) throw new Error("No response");
+                    
+                    aiVoiceStatus.innerText = "SPEAKING...";
+                    aiVoiceStatus.style.color = "var(--accent-secondary)";
+                    aiWrappers.forEach(w => {
+                        w.classList.remove('processing');
+                        w.classList.add('authorized');
+                    });
+
+                    speakAIResponse(aiText);
+
+                } catch (error) {
+                    console.error("AI Error:", error);
+                    let msg = "System Error. Check Console.";
+                    speakAIResponse(msg);
+                    aiVoiceStatus.innerText = "SYSTEM FAILURE";
+                }
+            };
+
+            recognition.onerror = (e) => {
+                aiVoiceStatus.innerText = "SIGNAL LOST. RETRY.";
+                aiWrappers.forEach(w => {
+                     w.classList.remove('listening');
+                     w.classList.add('angry');
+                });
+            };
+
+            try { recognition.start(); } catch(e) {}
+        }
+
+        function speakAIResponse(text) {
+            window.speechSynthesis.cancel();
+            // Clean text
+            const cleanText = text.replace(/[*#_`]/g, '');
+            const utterThis = new SpeechSynthesisUtterance(cleanText);
+            const voices = window.speechSynthesis.getVoices();
+            let preferredVoice = voices.find(v => v.name.includes('Google UK English Male'));
+            if (preferredVoice) utterThis.voice = preferredVoice;
+            utterThis.pitch = 0.9; utterThis.rate = 1.1;
+
+            utterThis.onend = () => {
+                aiVoiceStatus.innerText = "STANDING BY. TAP MIC.";
+                aiWrappers.forEach(w => w.classList.remove('authorized'));
+            };
+
+            window.speechSynthesis.speak(utterThis);
+        }
+
+        // --- 7. NAVIGATION & ANIMATIONS ---
+        function triggerTransition(targetViewId) {
+            document.body.classList.add('loading');
+            const loader = document.getElementById('loader');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const logText = document.getElementById('loader-log');
+            const wrapper = document.querySelector('.wrapper');
+            
+            loader.classList.add('active');
+            progressBar.style.width = '0%';
+            progressText.innerText = '0%';
+            
+            let prog = 0;
+            const interval = setInterval(() => {
+                if(Math.random() > 0.4) prog += Math.random() * 8;
+                if(prog >= 100) prog = 100;
+                
+                progressBar.style.width = prog + '%';
+                progressText.innerText = Math.floor(prog) + '%';
+
+                if(prog === 100) {
+                    clearInterval(interval);
+                    
+                    document.getElementById('home-view').classList.add('view-hidden');
+                    document.getElementById('projects-view').classList.add('view-hidden');
+                    document.getElementById('certificates-view').classList.add('view-hidden');
+                    document.getElementById('overview-view').classList.add('view-hidden');
+                    
+                    document.getElementById(targetViewId).classList.remove('view-hidden');
+                    
+                    if (targetViewId === 'home-view') {
+                        document.body.classList.add('no-scroll');
+                    } else {
+                        document.body.classList.remove('no-scroll');
+                    }
+
+                    window.scrollTo(0, 0);
+                    wrapper.classList.add('visible');
+                    setTimeout(() => {
+                        loader.classList.remove('active');
+                        document.body.classList.remove('loading');
+                        if(targetViewId === 'home-view') {
+                            document.querySelector('.hero').classList.add('active');
+                        }
+                    }, 400);
+                }
+            }, 30);
+        }
+
+        function navigateToOverview() { triggerTransition('overview-view'); }
+        function navigateToProjects() { triggerTransition('projects-view'); }
+        function navigateToCertificates() { triggerTransition('certificates-view'); }
+        function navigateToHome() { triggerTransition('home-view'); }
+
+        // --- 8. CARD INTERACTIONS ---
+        function makeInteractive(card) {
+            card.setAttribute('draggable', true);
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragover', handleDragOver);
+            card.addEventListener('drop', handleDrop);
+            card.addEventListener('dragend', handleDragEnd);
+            if (!card.querySelector('.card-controls')) {
+                const controls = document.createElement('div');
+                controls.className = 'card-controls';
+                controls.innerHTML = `
+                    <button class="control-btn edit-btn" onclick="toggleEdit(this)">✎</button>
+                    <button class="control-btn delete-btn" onclick="deleteCard(this)">✕</button>
+                `;
+                card.appendChild(controls);
+            }
+            if (!card.querySelector('.card-shine-wrapper')) {
+                const shine = document.createElement('div');
+                shine.className = 'card-shine-wrapper';
+                card.appendChild(shine);
+            }
+            updateInteractiveListeners();
+        }
+
+        document.querySelectorAll('.project-card, .certificate-card').forEach(makeInteractive);
+
+        let currentEditingBtn = null;
+        window.deleteCard = function(btn) {
+            const card = btn.closest('.project-card, .certificate-card');
+            if(card) {
+                card.style.opacity = "0";
+                setTimeout(() => card.remove(), 300);
+                playSFX('click');
+            }
+        };
+
+        window.toggleEdit = function(btn) {
+            const card = btn.closest('.project-card, .certificate-card');
+            if(!card) return;
+            if (currentEditingBtn && currentEditingBtn !== btn) currentEditingBtn.click();
+            
+            const title = card.querySelector('h3');
+            const desc = card.querySelector('.project-desc');
+            const icon = card.querySelector('.project-icon');
+            const isEditing = card.classList.contains('editing');
+            
+            playSFX('click');
+
+            if(isEditing) {
+                title.contentEditable = desc.contentEditable = "false";
+                if(icon) icon.contentEditable = "false";
+                btn.innerText = "✎"; 
+                card.classList.remove('editing');
+                currentEditingBtn = null;
+            } else {
+                card.classList.add('editing');
+                title.contentEditable = desc.contentEditable = "true";
+                if(icon) icon.contentEditable = "true";
+                title.focus();
+                btn.innerText = "💾"; 
+                currentEditingBtn = btn;
+            }
+        };
+
+        // Drag handlers
+        let dragSrcEl = null;
+        function handleDragStart(e) {
+            if (document.body.classList.contains('guest-mode')) return;
+            this.classList.add('dragging');
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+            playSFX('woosh');
+        }
+        function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; }
+        function handleDrop(e) {
+            if (document.body.classList.contains('guest-mode')) return;
+            if (e.stopPropagation) e.stopPropagation();
+            if (dragSrcEl !== this) {
+                const tempHTML = this.innerHTML;
+                this.innerHTML = dragSrcEl.innerHTML;
+                dragSrcEl.innerHTML = tempHTML;
+                updateInteractiveListeners();
+                playSFX('click');
+            }
+            return false;
+        }
+        function handleDragEnd() { this.classList.remove('dragging'); }
+
+        // --- 9. BACKGROUND PARTICLES ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 150 };
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2 + 1;
+                this.baseColor = Math.random() > 0.5 ? '#00f2ff' : '#00ff9d'; 
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance < mouse.radius) {
+                    const force = (mouse.radius - distance) / mouse.radius;
+                    this.x -= (dx / distance) * force * 3;
+                    this.y -= (dy / distance) * force * 3;
+                }
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.baseColor;
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const count = Math.min(window.innerWidth / 10, 80);
+            for (let i = 0; i < count; i++) particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                for (let j = index + 1; j < particles.length; j++) {
+                    const dx = p.x - particles[j].x;
+                    const dy = p.y - particles[j].y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 - dist/1000})`;
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => { resize(); initParticles(); });
+        resize(); initParticles(); animate();
+
+        // Eye Blink Loop
+        function blinkEyes() {
+            const eyes = document.querySelectorAll('.mech-eye');
+            const wrappers = document.querySelectorAll('.eye-set-wrapper');
+            eyes.forEach(eye => eye.classList.add('blink'));
+            wrappers.forEach(wrapper => wrapper.classList.add('blink-action'));
+            setTimeout(() => {
+                eyes.forEach(eye => eye.classList.remove('blink'));
+                wrappers.forEach(wrapper => wrapper.classList.remove('blink-action'));
+            }, 150);
+            setTimeout(blinkEyes, Math.random() * 4000 + 2000);
+        }
+        setTimeout(blinkEyes, 2000);
+
+        // Tilt effect
+        document.querySelectorAll('.section').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                card.style.transition = 'transform 0.4s ease-out';
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const xPct = x / rect.width;
+                const yPct = y / rect.height;
+                const xRot = (0.5 - yPct) * 3;
+                const yRot = (xPct - 0.5) * 3;
+                card.style.transform = `perspective(1000px) rotateX(${xRot}deg) rotateY(${yRot}deg)`;
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transition = 'transform 0.5s ease';
+                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+            });
+        });
+
+        // Intersection Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.section').forEach(s => observer.observe(s));
+    </script>
+</body>
+</html>
