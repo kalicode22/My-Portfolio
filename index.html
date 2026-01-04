@@ -235,10 +235,11 @@
             box-shadow: 0 0 40px rgba(0, 255, 157, 0.5), inset 0 0 30px rgba(0,0,0,0.8);
         }
 
-        /* 3. Typing / Processing (Orange) */
+        /* 3. Typing / Processing (Orange Blinking) */
         .eye-set-wrapper.typing .mech-eye {
             border-color: var(--accent-typing);
             box-shadow: 0 0 30px rgba(255, 174, 0, 0.6), inset 0 0 30px rgba(0,0,0,0.8);
+            animation: typing-pulse 0.2s infinite alternate; /* Rapid blinking effect */
         }
         .eye-set-wrapper.typing .mech-pupil {
             background: radial-gradient(circle, var(--accent-typing) 30%, transparent 70%);
@@ -250,6 +251,11 @@
             box-shadow: 0 0 10px var(--accent-typing);
             top: -20px; /* Focused / Concentration look */
             transform: rotate(0deg) !important;
+        }
+        
+        @keyframes typing-pulse {
+            0% { opacity: 1; }
+            100% { opacity: 0.6; }
         }
 
         /* 4. Scanning Animation (Blue Pulse) */
@@ -1850,11 +1856,12 @@
         // --- NEW: TYPING LOGIC ---
         verifyInput.addEventListener('input', (e) => {
             const textLen = verifyInput.value.length;
-            const maxTrackLen = 25; // Characters to reach edge of eye
+            const maxTrackLen = 30; // Characters to scan across
             
-            // Calculate horizontal shift: 0 to 40px based on length
-            // We assume cursor moves right from center
-            const xShift = Math.min((textLen / maxTrackLen) * 40, 40); 
+            // Map 0..30 chars to -25px..+25px (Left to Right scanning)
+            // Clamp between -25 and 25
+            let scanPos = ((textLen / maxTrackLen) * 50) - 25;
+            scanPos = Math.max(-25, Math.min(25, scanPos));
             
             // Fixed look-down Y position
             const yShift = 25; 
@@ -1863,12 +1870,18 @@
                 const pupil = eye.querySelector('.mech-pupil');
                 // Direct transform application for responsiveness
                 // Slight random jitter for organic feel
-                const jitter = (Math.random() - 0.5) * 3;
-                pupil.style.transform = `translate(calc(-50% + ${xShift + jitter}px), calc(-50% + ${yShift}px))`;
+                const jitter = (Math.random() - 0.5) * 2;
+                pupil.style.transform = `translate(calc(-50% + ${scanPos + jitter}px), calc(-50% + ${yShift}px))`;
+            });
+            
+            // Ensure visual state
+            verificationEyeWrappers.forEach(wrapper => {
+                wrapper.classList.remove('authorized', 'happy', 'angry', 'scanning');
+                wrapper.classList.add('typing');
             });
         });
 
-        // 3. Blur: Reset eyes to normal if clicked away
+        // Reset eyes when blur (optional)
         verifyInput.addEventListener('blur', () => {
              verificationEyeWrappers.forEach(wrapper => wrapper.classList.remove('typing'));
              // Reset pupil via style cleanup so CSS/MouseMove can take over
