@@ -1853,39 +1853,57 @@
              }, 500);
         });
 
-        // --- NEW: TYPING LOGIC ---
-        verifyInput.addEventListener('input', (e) => {
-            const textLen = verifyInput.value.length;
-            const maxTrackLen = 30; // Characters to scan across
-            
-            // Map 0..30 chars to -25px..+25px (Left to Right scanning)
-            // Clamp between -25 and 25
-            let scanPos = ((textLen / maxTrackLen) * 50) - 25;
-            scanPos = Math.max(-25, Math.min(25, scanPos));
-            
-            // Fixed look-down Y position
-            const yShift = 25; 
-
+        // --- ENHANCED TYPING LOGIC (REALISTIC READING) ---
+        
+        // 1. Focus: Eyes look down at center immediately
+        verifyInput.addEventListener('focus', () => {
+            verificationEyeWrappers.forEach(wrapper => {
+                wrapper.classList.add('typing');
+                wrapper.classList.remove('authorized', 'happy', 'angry', 'scanning');
+            });
+            // Initial look down position (Center - 0px)
             document.querySelectorAll('.mech-eye').forEach(eye => {
                 const pupil = eye.querySelector('.mech-pupil');
-                // Direct transform application for responsiveness
-                // Slight random jitter for organic feel
-                const jitter = (Math.random() - 0.5) * 2;
-                pupil.style.transform = `translate(calc(-50% + ${scanPos + jitter}px), calc(-50% + ${yShift}px))`;
-            });
-            
-            // Ensure visual state
-            verificationEyeWrappers.forEach(wrapper => {
-                wrapper.classList.remove('authorized', 'happy', 'angry', 'scanning');
-                wrapper.classList.add('typing');
+                // Smooth reset to center
+                pupil.style.transition = 'transform 0.3s ease-out';
+                pupil.style.transform = `translate(calc(-50% + 0px), calc(-50% + 25px))`;
             });
         });
 
-        // Reset eyes when blur (optional)
+        // 2. Typing: Eyes make saccadic movements (reading jumps)
+        verifyInput.addEventListener('input', (e) => {
+            const textLen = verifyInput.value.length;
+            const maxTrackLen = 25; // Chars until eye reaches edge
+            
+            // Map text length to horizontal range (0px to 45px)
+            // Cursor moves right from center in centered input
+            let xPos = (textLen / maxTrackLen) * 45;
+            xPos = Math.min(45, xPos); 
+            
+            // Fixed look-down Y position
+            const yPos = 25; 
+
+            document.querySelectorAll('.mech-eye').forEach(eye => {
+                const pupil = eye.querySelector('.mech-pupil');
+                
+                // Add micro-jitter (Saccade simulation)
+                // Real eyes don't move perfectly smooth, they twitch slightly on focus
+                const jitter = (Math.random() - 0.5) * 3;
+                
+                // Use a snappy transition to mimic eye darting to next letter
+                pupil.style.transition = 'transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                pupil.style.transform = `translate(calc(-50% + ${xPos + jitter}px), calc(-50% + ${yPos}px))`;
+            });
+        });
+
+        // 3. Blur: Reset eyes
         verifyInput.addEventListener('blur', () => {
              verificationEyeWrappers.forEach(wrapper => wrapper.classList.remove('typing'));
-             // Reset pupil via style cleanup so CSS/MouseMove can take over
-             document.querySelectorAll('.mech-eye .mech-pupil').forEach(p => p.style.transform = '');
+             // Reset style to allow mouse tracking again
+             document.querySelectorAll('.mech-eye .mech-pupil').forEach(p => {
+                 p.style.transition = ''; // Remove snappy transition
+                 p.style.transform = '';
+             });
         });
 
         verifyInput.addEventListener('keydown', (e) => {
